@@ -1,5 +1,8 @@
 # SafeType
 [![Gem Version](https://badge.fury.io/rb/safe_type.svg)](https://badge.fury.io/rb/safe_type)
+[![Build Status](https://travis-ci.org/chanzuckerberg/safe_type.svg?branch=master)](https://travis-ci.org/chanzuckerberg/safe_type)
+[![Maintainability](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/maintainability)](https://codeclimate.com/github/chanzuckerberg/safe_type/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/test_coverage)](https://codeclimate.com/github/chanzuckerberg/safe_type/test_coverage)
 
 While working with environment variables, routing parameters, JSON objects,
   or other Hash-like objects require parsing,
@@ -26,50 +29,30 @@ Using `SafeType` namespace:
 ```ruby
 require 'safe_type'
 
-SafeType::coerce "SafeType"
-```
-Or `include SafeType`:
-```ruby
-require 'safe_type'
-include SafeType
-
-coerce "SafeType"
+SafeType::coerce("SafeType", SafeType::Required::String)
 ```
 
-### Coerce By Default
-When `SafeType::coerce` doesn't have additional argument,
-  it coerces the input by default. 
-***Note: Default coercion may cause unexpected behavior. 
-It is safer to specify coersion rules***
-
-1. Coerce `falsy` values to `nil`.
-Following values are considered falsy:
-- false
-- 0
-- empty strings
-- NaN (or any objects respond to `nan?` and return true)
-All other values which are not falsy are considered to be truthy.
+### Coercion with Default Value
 ```ruby
-falsy? false          # => true
-falsy? 0              # => true
-falsy? ""             # => true
-falsy? Float::NAN     # => true
-
-coerce false          # => nil
-coerce 0              # => nil
-coerce ""             # => nil
-coerce Float::NAN     # => nil
+SafeType::coerce("true", SafeType::Default::Boolean(false))   # => true
+SafeType::coerce(nil, SafeType::Default::Boolean(false))      # => false
+SafeType::coerce("a", SafeType::Default::Symbol(:a))          # => :a
+SafeType::coerce("123", SafeType::Default::Integer(nil))      # => 123
+SafeType::coerce("1.0", SafeType::Default::Float(nil))        # => 1.0
+SafeType::coerce("2018-06-01", SafeType::Default::Date(nil))
+# => #<Date: 2018-06-01 ((2458271j,0s,0n),+0s,2299161j)>
 ```
-2. Coerce `String`
+### Coercion with Required Value
 ```ruby
-coerce "123"          # => 123
-coerce "123.0"        # => 123.0
-coerce "2018-06-01"   # => #<Date: 2018-06-01 ((2458271j,0s,0n),+0s,2299161j)>
-coerce "SafeType"     # => "SafeType"
+SafeType::coerce("true", SafeType::Required::Boolean)         # => true
+SafeType::coerce(nil, SafeType::Required::Boolean)            # => SafeType::CoercionError 
+SafeType::coerce("123!", SafeType::Required::Integer)         # => SafeType::CoercionError
 ```
 
 ### Coercion Rule
-A coercion rule has to be described as a hash, with a required key `type`.
+Under the hood, all `SafeType::Required` and `SafeType::Default` modules are just
+methods for creating coercion rules. A coercion rule has to be described as a hash, 
+with a required key `type`.
 ```ruby
 r = Rule.new(type: Integer)
 ```
@@ -81,7 +64,7 @@ A coercion rules support other parameters such as:
 - `before`: A method will be called before the coercion,
     which takes the value to coerce as input.
 - `after`: A method will be called after the coercion,
-    which takes the value to coerce as input. 
+    which takes the coercion result as input. 
 - `validate`: A method will be called to validate the input,
     which takes the value to coerce as input. It returns `true` or `false`.
     It will empty the value to `nil` if the validation method returns `false`.
@@ -94,31 +77,21 @@ If the input is hash-like, then the rules shall be described as the values,
 `coerce!` is a mutating method, which modifies the values in place.
 
 ```ruby
-input = {
-  name: "user",
-  mail: "invalid.email.address",
-  info: {
-    dog_person: "true",
-    num_of_dogs: "1",
-    birthday: "2018-06-01",
-  }
-}
+RequiredRecentDate = SafeType::Rule.new(
+  type: Date, required: true, after: lambda { |date|
+    date if date >= Date.new(2000, 1, 1) && date <= Date.new(2020, 1, 1)
+  })
 
-coerce! input, {
-  name: Rule.new(type: String, required: true),
-  mail: Rule.new(type: String, required: true, validate: :mail_address?),
-  info: {
-    dog_person: Rule.new(type: Boolean, default: true),
-    num_of_dogs: Rule.new(type: Integer, default: 0),
-    birthday: Rule.new(type: Date),
-  }
-}
+# => <Date: 2015-01-01 ((2457024j,0s,0n),+0s,2299161j)> 
+SafeType::coerce("2015-01-01", RequiredRecentDate) 
+# SafeType::CoercionError
+SafeType::coerce("3000-01-01", RequiredRecentDate)
 ```
 Note mutating coercion can only be applied on a hash-like object.
 
 ```ruby
 # ArgumentError: mutating coercion can only be applied on a hash-like object
-coerce! "1", Rule.new(type: Integer) 
+SafeType::coerce!("1", Rule.new(type: Integer))
 ```
 
 ### Coerce Environment Variables
@@ -130,15 +103,31 @@ ENV["FLAG_0"] = "true"
 ENV["FLAG_1"] = "false"
 ENV["NUM_0"] = "123"
 
-h = coerce ENV, {
-  FLAG_0: Rule.new(type: Boolean, default: false),
-  FLAG_1: Rule.new(type: Boolean, default: false),
-  NUM_0: Rule.new(type: Integer),
-}.stringify_keys
+h = SafeType::coerce(ENV, {
+  FLAG_0: SafeType::Default::Boolean(false),
+  FLAG_1: SafeType::Default::Boolean(false),
+  NUM_0: SafeType::Default::Integer(0),
+}.stringify_keys).symbolize_keys 
 
-h["FLAG_0"]   # => true
-h["FLAG_1"]   # => false
-h["NUM_0"]    # => 123
+h[:FLAG_0]   # => true
+h[:FLAG_1]   # => false
+h[:NUM_0]    # => 123
+```
+
+### Coerce Hash-like Objects
+```ruby
+params = {
+  scores: ["5.0", "3.5", "4.0", "2.2"],
+  names: ["a", "b", "c", "d"],
+}
+
+SafeType::coerce!(params, {
+  scores: [SafeType::Required::Float],
+  names: [SafeType::Required::String],
+})
+
+params[:scores]   # => [5.0, 3.5, 4.0, 2.2]
+params[:names]    # => ["a", "b", "c", "d"]
 ```
 
 ## Prior Art

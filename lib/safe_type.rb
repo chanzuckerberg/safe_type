@@ -4,6 +4,15 @@ require 'time'
 module SafeType
   module Boolean; end
 
+  module HashHelper
+    def stringify_keys
+      Hash[self.map{ |key, val| [key.to_s, val] }]
+    end
+    def symbolize_keys
+      Hash[self.map{ |key, val| [key.to_sym, val] }]
+    end
+  end
+
   class Converter
     @@TRUE_VALUES = %w[on On ON t true True TRUE T y yes Yes YES Y].freeze
     @@FALSE_VALUES = %w[off Off OFF f false False FALSE F n no No NO N].freeze
@@ -34,22 +43,16 @@ module SafeType
     def self.to_date(input)
       return input unless input.respond_to?(:to_str)
       Date.parse(input)
-    rescue ArgumentError, RangeError
-      input
     end
 
     def self.to_date_time(input)
       return input unless input.respond_to?(:to_str)
       DateTime.parse(input)
-    rescue ArgumentError
-      input
     end
 
     def self.to_time(input)
       return input unless input.respond_to?(:to_str)
       Time.parse(input)
-    rescue ArgumentError
-      input
     end
 
     def self.to_type(input, type)
@@ -66,6 +69,12 @@ module SafeType
       return self.to_time(input) if type == Time
       return type.try_convert(input) if type.respond_to?(:try_convert)
       return type.new(input) if type.respond_to?(:new)
+    end
+  end
+
+  class CoercionError < TypeError
+    def initialize(msg="unable to transform the input into the requested type.")
+      super
     end
   end
 
@@ -97,51 +106,111 @@ module SafeType
       begin
         result = Converter.to_type(input, @type) \
           if @validate.nil? || (!@validate.nil? && @validate[input])
-      rescue ArgumentError, TypeError
+      rescue
         return @default if @has_default
         return nil unless @required
       end
-      raise TypeError, "invalid conversion" if result.nil? && @required
+      result = @after[result] unless @after.nil?
+      raise CoercionError if result.nil? && @required
       return @default if result.nil?
-      return @after[result] unless @after.nil?
       result
     end
   end
 
-  def falsy?(input)
-    return true if input == false
-    return true if input == 0
-    return true if input == ""
-    return true if input.respond_to?(:nan?) && input.nan?
-    false
-  end
-
-  def truthy?(input)
-    !falsy?(input)
-  end
-
-  def mail_address?(input)
-    !/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i.match(input).nil?
-  end
-
-  def coerce(input, params=nil)
-    if params.nil?
-      return nil if falsy?(input)
-      Converter.class_variable_get(:@@METHODS).each do |m|
-        begin
-          result = Converter.method(m).call(input)
-        rescue ArgumentError, TypeError
-          result = nil
-        end
-        return result unless result.nil?
-      end
-      return input
+  module Default
+    def self.String(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: String, default: val, validate: validate, before: before, after: after)
     end
+
+    def self.Symbol(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Symbol, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.Boolean(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Boolean, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.Integer(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Integer, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.Float(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Float, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.Date(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Date, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.DateTime(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: DateTime, default: val, validate: validate, before: before, after: after)
+    end
+
+    def self.Time(val, validate: nil, before: nil, after: nil)
+      Rule.new(type: Time, default: val, validate: validate, before: before, after: after)
+    end
+  end
+
+  module Required
+    def self.String(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::String, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.Symbol(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::Symbol, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.Boolean(validate: nil, before: nil, after: nil)
+      Rule.new(type: SafeType::Boolean, required: true, validate: validate,
+               before: before, after: after)
+    end
+
+    def self.Integer(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::Integer, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.Float(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::Float, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.Date(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::Date, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.DateTime(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::DateTime, required: true, validate: validate, before: before, after: after)
+    end
+
+    def self.Time(validate: nil, before: nil, after: nil)
+      Rule.new(type: ::Time, required: true, validate: validate, before: before, after: after)
+    end
+
+    String = Rule.new(type: ::String, required: true)
+    Symbol = Rule.new(type: ::Symbol, required: true)
+    Boolean = Rule.new(type: SafeType::Boolean, required: true)
+    Integer = Rule.new(type: ::Integer, required: true)
+    Float = Rule.new(type: ::Float, required: true)
+    Date = Rule.new(type: ::Date, required: true)
+    DateTime = Rule.new(type: ::DateTime, required: true)
+    Time = Rule.new(type: ::Time, required: true)
+  end
+
+  def coerce(input, params)
     return params.apply(input) if params.class == Rule
     if params.class == ::Hash
       result = {}
       params.each do |key, val|
-        result[key] = coerce input[key], val
+        result[key] = coerce(input[key], val)
+      end
+      return result
+    end
+    if params.class == ::Array
+      return [] if input.nil?
+      result = Array.new(input.length)
+      i = 0
+      while i < input.length
+        result[i] = coerce(input[i], params[i % params.length])
+        i += 1
       end
       return result
     end
@@ -149,15 +218,25 @@ module SafeType
   end
 
   def coerce!(input, params)
-    raise ArgumentError, "mutating coercion can only be applied on a hash-like object" \
-      unless params.class == ::Hash
-    params.each do |key, val|
-      if val.class == ::Hash
-        coerce! input[key], val
-      else
-        input[key] = coerce input[key], val
+    if params.class == ::Hash
+      params.each do |key, val|
+        if val.class == ::Hash
+          coerce!(input[key], val)
+        else
+          input[key] = coerce(input[key], val)
+        end
       end
+      return nil
     end
+    if params.class == ::Array
+      i = 0
+      while i < input.length
+        input[i] = coerce(input[i], params[i % params.length])
+        i += 1
+      end
+      return nil
+    end
+    raise ArgumentError, "invalid coercion rule"
   end
 
   class << self
@@ -167,12 +246,4 @@ end
 
 class TrueClass; include SafeType::Boolean; end
 class FalseClass; include SafeType::Boolean; end
-
-class Hash
-  def stringify_keys
-    Hash[self.map{ |key, val| [key.to_s, val] }]
-  end
-  def symbolize_keys
-    Hash[self.map{ |key, val| [key.to_sym, val] }]
-  end
-end
+class Hash; include SafeType::HashHelper; end

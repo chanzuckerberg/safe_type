@@ -1,102 +1,112 @@
 require 'safe_type'
-include SafeType
+
+class MyDate < Date
+  def self.try_convert(input)
+    Date.parse(input)
+  rescue
+    Date.new(2018, 1, 1)
+  end
+end
+
+class MyObject
+  attr_reader :num
+  def initialize(input)
+    @num = input.to_i * 2
+  end
+end
 
 describe SafeType do
-  it "considers `false` to be falsy" do
-    expect(falsy? false).to be true
-  end
-
-  it "considers `0` to be falsy" do
-    expect(falsy? 0).to be true
-  end
-
-  it "considers empty strings to be falsy" do
-    expect(falsy? "").to be true
-  end
-
-  it "considers NaN to be falsy" do
-    expect(falsy?(Float::NAN)).to be true
-  end
-
-  context "when no arguments" do
-    it "converts falsy values to nil" do
-      expect(coerce false).to be_nil
-      expect(coerce 0).to be_nil
-      expect(coerce "").to be_nil
-      expect(coerce Float::NAN).to be_nil
-    end
-
-    it "coerces to true" do
-      Converter.class_variable_get(:@@TRUE_VALUES).each do |input|
-        expect(coerce input).to be true
-      end
-    end
-
-    it "coerces to false" do
-      Converter.class_variable_get(:@@FALSE_VALUES).each do |input|
-        expect(coerce input).to be false
-      end
-    end
-
-    it "coerces to integer" do
-      expect(coerce "0").to eql(0)
-      expect(coerce "91283018204810123819234141").to eql(91283018204810123819234141)
-      expect(coerce "0123").to eql(123)
-      expect(coerce "-123").to eql(-123)
-    end
-
-    it "coerces to float" do
-      expect(coerce "0.0").to eql(0.0)
-      expect(coerce "1e6").to eql(1e6)
-    end
-  end
-
   context "when coercion rules are valid" do
-    it "coerces basic type" do
-      expect(
-        coerce "true", Rule.new(
-          type: TrueClass
-        )).to be true
-
-      expect(
-        coerce "false", Rule.new(
-          type: FalseClass
-        )).to be false
-
-      expect(
-        coerce "123", Rule.new(
-          type: Float
-        )).to eql(123.0)
-
-      expect(
-        coerce "2018-06-01", Rule.new(
-          type: Date
-        )).to eql(Date.new(2018, 6, 1))
+    it "coerces basic type with default value" do
+      expect(SafeType::coerce(
+        "true", SafeType::Default::Boolean(false)
+      )).to be true
+      expect(SafeType::coerce(
+        nil, SafeType::Default::Boolean(false)
+      )).to be false
+      expect(SafeType::coerce(
+        "a", SafeType::Default::Symbol(:a)
+      )).to eql(:a)
+      expect(SafeType::coerce(
+        "123", SafeType::Default::Integer(nil)
+      )).to eql(123)
+      expect(SafeType::coerce(
+        "123", SafeType::Default::Float(nil)
+      )).to eql(123.0)
+      expect(SafeType::coerce(
+        "2018-06-01", SafeType::Default::Date(nil)
+      )).to eql(Date.new(2018, 6, 1))
 
       time = Time.now
       str = time.iso8601(9)
-      expect(
-        coerce str, Rule.new(
-          type: Time
-        )).to eql(time)
+      expect(SafeType::coerce(
+        str, SafeType::Default::Time(nil)
+      )).to eql(time)
 
       datetime = DateTime.now
       str = datetime.iso8601(9)
-      expect(
-        coerce str, Rule.new(
-          type: DateTime
-        )).to eql(datetime)
+      expect(SafeType::coerce(
+        str, SafeType::Default::DateTime(nil)
+      )).to eql(datetime)
 
-      expect(
-        coerce 123, Rule.new(
-          type: String
-        )).to eql("123")
+      expect(SafeType::coerce(
+        123, SafeType::Default::String(nil)
+      )).to eql("123")
+    end
 
+    it "coerces basic type without default value" do
+      expect(SafeType::coerce(
+        "true", SafeType::Required::Boolean()
+      )).to be true
+      expect{SafeType::coerce(
+        nil, SafeType::Required::Boolean
+      )}.to raise_error(SafeType::CoercionError)
+      expect(SafeType::coerce(
+        "a", SafeType::Required::Symbol
+      )).to eql(:a)
+      expect{SafeType::coerce(
+        [], SafeType::Required::Symbol
+      )}.to raise_error(SafeType::CoercionError)
+      expect(SafeType::coerce(
+        "123", SafeType::Required::Integer
+      )).to eql(123)
+      expect{SafeType::coerce(
+        "123!", SafeType::Required::Integer
+      )}.to raise_error(SafeType::CoercionError)
+      expect(SafeType::coerce(
+        "123", SafeType::Required::Float()
+      )).to eql(123.0)
+      expect{SafeType::coerce(
+        "123..", SafeType::Required::Float
+      )}.to raise_error(SafeType::CoercionError)
+      expect(SafeType::coerce(
+        "2018-06-01", SafeType::Required::Date()
+      )).to eql(Date.new(2018, 6, 1))
+      expect{SafeType::coerce(
+        "apple", SafeType::Required::Date
+      )}.to raise_error(SafeType::CoercionError)
 
-      expect(
-        coerce "SafeType", Rule.new(
-          type: Symbol
-        )).to eql(:SafeType)
+      time = Time.now
+      str = time.iso8601(9)
+      expect(SafeType::coerce(
+        str, SafeType::Required::Time()
+      )).to eql(time)
+      expect{SafeType::coerce(
+        "apple", SafeType::Required::Time
+      )}.to raise_error(SafeType::CoercionError)
+
+      datetime = DateTime.now
+      str = datetime.iso8601(9)
+      expect(SafeType::coerce(
+        str, SafeType::Required::DateTime()
+      )).to eql(datetime)
+      expect{SafeType::coerce(
+        "apple", SafeType::Required::DateTime
+      )}.to raise_error(SafeType::CoercionError)
+
+      expect(SafeType::coerce(
+        123, SafeType::Required::String
+      )).to eql("123")
     end
 
     it "coerces flat hash" do
@@ -111,13 +121,13 @@ describe SafeType do
         percentile: 123.0,
       }
       rules = {
-        age: Rule.new(type: Integer),
-        happy: Rule.new(type: TrueClass),
-        percentile: Rule.new(type: Float),
+        age: SafeType::Required::Integer(),
+        happy: SafeType::Default::Boolean(false),
+        percentile: SafeType::Required::Float,
       }
-      out = coerce(input, rules)
+      out = SafeType::coerce(input, rules)
       expect(out).to eql(ans)
-      coerce!(input, rules)
+      SafeType::coerce!(input, rules)
       expect(input).to eql(ans)
     end
 
@@ -137,15 +147,18 @@ describe SafeType do
         },
       }
       rules = {
-        role: Rule.new(type: String),
+        role: SafeType::Required::String(
+          validate: lambda { |x|
+            x == "teacher" || x == "student"
+          }),
         info: {
-          school_id: Rule.new(type: Integer),
-          num_students: Rule.new(type: Integer),
+          school_id: SafeType::Required::Integer,
+          num_students: SafeType::Required::Integer,
         },
       }
-      out = coerce(input, rules)
+      out = SafeType::coerce(input, rules)
       expect(out).to eql(ans)
-      coerce!(input, rules)
+      SafeType::coerce!(input, rules)
       expect(input).to eql(ans)
 
       input = {
@@ -166,52 +179,91 @@ describe SafeType do
         },
       }
       rules = {
-        role: Rule.new(type: String),
+        role: SafeType::Required::String,
         info: {
-          school_id: Rule.new(type: Integer, required: true),
-          num_students: Rule.new(type: Integer, required: true),
-          dog_person: Rule.new(type: Boolean, default: true),
-          birthday: Rule.new(type: Date),
+          school_id: SafeType::Required::Integer,
+          num_students: SafeType::Required::Integer,
+          dog_person: SafeType::Default::Boolean(true),
+          birthday: SafeType::Required::Date,
         },
       }
-      out = coerce(input, rules)
+      out = SafeType::coerce(input, rules)
       expect(out).to eql(ans)
-      coerce!(input, rules)
+      SafeType::coerce!(input, rules)
       expect(input).to eql(ans)
     end
 
-    it "validates mail addresses" do
-      expect(mail_address? "@@").to be false
-      expect(mail_address? "user@@domain.com").to be false
-      expect(mail_address? "user@domaincom").to be false
-      expect(mail_address? "a89&*^@domain.com").to be false
-      expect(mail_address? "@domain.com").to be false
-      expect(mail_address? "a@domain.com").to be true
-
+    it "coerces flat array" do
       input = {
-        name: "user0",
-        mail: "invalid.email.address",
+        scores: ["5.0", "3.5", "4.0", "2.2"],
+        names: ["a", "b", "c", "d"],
       }
       ans = {
-        name: "user0",
-        mail: nil,
+        scores: [5.0, 3.5, 4.0, 2.2],
+        names: ["a", "b", "c", "d"],
       }
       rules = {
-        name: Rule.new(type: String),
-        mail: Rule.new(type: String, validate: lambda {|x| mail_address? x }),
+        scores: [SafeType::Required::Float],
+        names: [SafeType::Required::String],
       }
-      out = coerce(input, rules)
+      out = SafeType::coerce(input, rules)
       expect(out).to eql(ans)
-      coerce!(input, rules)
+      SafeType::coerce!(input, rules)
+      expect(input).to eql(ans)
+
+      input = ["1", "2", "3"]
+      ans = [1, 2, 3]
+      rules = [SafeType::Required::Integer]
+      out = SafeType::coerce(input, rules)
+      expect(out).to eql(ans)
+      SafeType::coerce!(input, rules)
+      expect(input).to eql(ans)
+
+      input = ["1", "true", "3", "false"]
+      ans = [1, true, 3, false]
+      rules = [SafeType::Required::Integer, SafeType::Required::Boolean]
+      out = SafeType::coerce(input, rules)
+      expect(out).to eql(ans)
+      SafeType::coerce!(input, rules)
       expect(input).to eql(ans)
     end
 
+    it "coerces nested array" do
+      input = [
+        false,
+        ["1", "2", "3"],
+        ["1.0", "2.0", "-3.0"],
+        ["apple", "banana"],
+      ]
+      ans = [
+        true,
+        [1, 2, 3],
+        [1.0, 2.0, -3.0],
+        [:apple, :banana],
+      ]
+      rules = [
+        SafeType::Required::Boolean(after: lambda { |x| !x }),
+        [SafeType::Required::Integer],
+        [SafeType::Required::Float],
+        [SafeType::Required::Symbol(validate: lambda { |x|
+          x.length <= 15
+        })],
+      ]
+      out = SafeType::coerce(input, rules)
+      expect(out).to eql(ans)
+      SafeType::coerce!(input, rules)
+      expect(input).to eql(ans)
+    end
 
     it "reserves the same types" do
-      expect(coerce 1, Rule.new(type: Integer)).to eql(1)
-      expect(coerce 1.0, Rule.new(type: Float)).to eql(1.0)
-      expect(coerce Date.new(2018, 1, 1), Rule.new(type: Date)).to eql(Date.new(2018, 1, 1))
-      expect(coerce "SafeType", Rule.new( type: String)).to eql("SafeType")
+      expect(SafeType::coerce(
+        1, SafeType::Rule.new(type: Integer))).to eql(1)
+      expect(SafeType::coerce(
+        1.0, SafeType::Rule.new(type: Float))).to eql(1.0)
+      expect(SafeType::coerce(
+        Date.new(2018, 1, 1), SafeType::Rule.new(type: Date))).to eql(Date.new(2018, 1, 1))
+      expect(SafeType::coerce(
+        "SafeType", SafeType::Rule.new( type: String))).to eql("SafeType")
     end
 
     it "applies method before and after coercion" do
@@ -225,11 +277,11 @@ describe SafeType do
         a: "002",
         b: "422",
       }
-      r = Rule.new(type: String, before: before, after: after)
+      r = SafeType::Rule.new(type: String, before: before, after: after)
       rules = { a: r, b: r }
-      out = coerce(input, rules)
+      out = SafeType::coerce(input, rules)
       expect(out).to eql(ans)
-      coerce!(input, rules)
+      SafeType::coerce!(input, rules)
       expect(input).to eql(ans)
     end
 
@@ -239,37 +291,39 @@ describe SafeType do
       ENV["NUM_0"] = "123"
 
       rules = {
-        FLAG_0: Rule.new(type: Boolean, default: false),
-        FLAG_1: Rule.new(type: Boolean, default: false),
-        NUM_0: Rule.new(type: Integer),
+        FLAG_0: SafeType::Default::Boolean(false),
+        FLAG_1: SafeType::Default::Boolean(false),
+        NUM_0: SafeType::Default::Integer(0),
       }
 
       # ENV only accept String keys
       expect{
-        coerce ENV, rules
+        SafeType::coerce(ENV, rules)
       }.to raise_error(TypeError)
 
       rules = rules.stringify_keys
 
-      h = coerce ENV, rules
+      h = SafeType::coerce(ENV, rules)
 
       # ENV only accept String values, so we can't coerce in place
       expect{
-        coerce! ENV, rules
+        SafeType::coerce!(ENV, rules)
       }.to raise_error(TypeError)
 
-      expect(h["FLAG_0"]).to eql(true)
-      expect(h["FLAG_1"]).to eql(false)
-      expect(h["NUM_0"]).to eql(123)
+      h = h.symbolize_keys
+
+      expect(h[:FLAG_0]).to eql(true)
+      expect(h[:FLAG_1]).to eql(false)
+      expect(h[:NUM_0]).to eql(123)
     end
   end
 
   context "when coercion rules are invalid" do
-    it 'raises exceptions' do
+    it "raises exceptions" do
       expect{
-        coerce! "true", Rule.new(
+        SafeType::coerce!("true", SafeType::Rule.new(
           type: TrueClass
-        )}.to raise_error(ArgumentError)
+        ))}.to raise_error(ArgumentError)
 
       input = {
         age: "15",
@@ -287,11 +341,30 @@ describe SafeType do
         percentile: Float,
       }
       expect{
-        coerce input, rules
+        SafeType::coerce(input, rules)
       }.to raise_error(ArgumentError)
       expect{
-        coerce! input, rules
+        SafeType::coerce!(input, rules)
       }.to raise_error(ArgumentError)
     end
+  end
+
+  it "coerces custom types" do
+    expect(SafeType::coerce(
+      "apple", SafeType::Rule.new(type: MyDate)
+    )).to eql(Date.new(2018, 1, 1))
+
+    expect(SafeType::coerce(
+      "1", SafeType::Rule.new(type: MyObject)
+    ).num).to eql(2)
+
+    RequiredRecentDate = SafeType::Rule.new(
+      type: Date, required: true, after: lambda { |date|
+        date if date >= Date.new(2000, 1, 1) && date <= Date.new(2020, 1, 1)
+      })
+
+    expect(SafeType::coerce("2015-01-01", RequiredRecentDate)).to eql(Date.new(2015, 1, 1))
+    expect{SafeType::coerce(
+      "3000-01-01", RequiredRecentDate)}.to raise_error(SafeType::CoercionError)
   end
 end
