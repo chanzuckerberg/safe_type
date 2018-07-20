@@ -12,7 +12,7 @@ module SafeType
       @default = default
     end
 
-    def validate(input)
+    def is_valid?(input)
       true
     end
 
@@ -28,8 +28,8 @@ module SafeType
       raise SafeType::CoercionError
     end
 
-    def self.[](input)
-      default[input]
+    def self.coerce(input)
+      default.coerce(input)
     end
 
     def self.default
@@ -40,11 +40,11 @@ module SafeType
       new(required: true)
     end
 
-    def [](input)
+    def coerce(input)
       raise SafeType::EmptyValueError if input.nil? && @required
       input = before(input)
       input = Converter.to_type(input, @type)
-      raise SafeType::ValidationError unless validate(input)
+      raise SafeType::ValidationError unless is_valid?(input)
       result = after(input)
       raise SafeType::EmptyValueError if result.nil? && @required
       return @default if result.nil?

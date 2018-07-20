@@ -6,7 +6,7 @@ module SafeType
       super
     end
 
-    def validate(input)
+    def is_valid?(input)
       return false unless @min.nil? || input >= @min
       return false unless @max.nil? || input <= @max
       super

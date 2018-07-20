@@ -6,7 +6,7 @@ module SafeType
       super
     end
 
-    def validate(input)
+    def is_valid?(input)
       return false unless @min_length.nil? || input.length >= @min_length
       return false unless @max_length.nil? || input.length <= @max_length
       super

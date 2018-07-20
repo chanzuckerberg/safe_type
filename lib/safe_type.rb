@@ -13,7 +13,7 @@ require 'safe_type/primitive/time'
 module SafeType
   class << self
     def coerce(input, rule)
-      return rule[input] if rule.is_a?(SafeType::Rule)
+      return rule.coerce(input) if rule.is_a?(SafeType::Rule)
       if rule.class == ::Hash
         result = {}
         rule.each do |key, val|

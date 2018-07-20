@@ -5,8 +5,8 @@ describe :coerce_integer do
     expect(
       SafeType::coerce(nil, SafeType::Integer.default(123))
     ).to eql(123)
-    expect(SafeType::Integer[nil]).to eql(0)
-    expect(SafeType::Integer["123"]).to eql(123)
+    expect(SafeType::Integer.coerce(nil)).to eql(0)
+    expect(SafeType::Integer.coerce("123")).to eql(123)
     expect{
       SafeType::coerce(nil, SafeType::Integer.strict)
     }.to raise_error(SafeType::EmptyValueError)

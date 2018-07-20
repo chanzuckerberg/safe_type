@@ -242,7 +242,7 @@ describe :SafeType do
 
   it "coerces to custom types" do
     class FallSemester < SafeType::Date
-      def validate(input)
+      def is_valid?(input)
         today = Date.today
         current_year = today.year
         if today <= Date.new(current_year, 12, 20)
@@ -298,7 +298,7 @@ describe :SafeType do
       end
     end
 
-    expect(Response["https://API_URI"].is_a?(ResponseType)).to be true
+    expect(Response.coerce("https://API_URI").is_a?(ResponseType)).to be true
 
     class InvalidResponse < SafeType::Rule
       def initialize(type: ResponseType, default: "404")
@@ -311,6 +311,6 @@ describe :SafeType do
       end
     end
 
-    expect(InvalidResponse["https://API_URI"]).to eql("404")
+    expect(InvalidResponse.coerce("https://API_URI")).to eql("404")
   end
 end

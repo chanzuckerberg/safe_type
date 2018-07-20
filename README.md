@@ -1,5 +1,6 @@
+---
 SafeType
-======
+---
 [![Gem Version](https://badge.fury.io/rb/safe_type.svg)](https://badge.fury.io/rb/safe_type)
 [![Build Status](https://travis-ci.org/chanzuckerberg/safe_type.svg?branch=master)](https://travis-ci.org/chanzuckerberg/safe_type)
 [![Maintainability](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/maintainability)](https://codeclimate.com/github/chanzuckerberg/safe_type/maintainability)
@@ -48,8 +49,8 @@ SAFE_ENV[:BUILD_NUM]        # => 123
 ```
 ## Routing Parameters
 ```ruby
-class FallSemester < SafeType::Date
-  # implement validate method
+class FallSemesterStartDate < SafeType::Date
+  # implement `is_valid?` method
 end
 
 current_year = Date.today.year
@@ -113,7 +114,7 @@ class Response < SafeType::Rule
   end
 end
 
-Response["https://API_URI"]   # => #<ResponseType:0x000056005b3e7518>
+Response.coerce("https://API_URI")   # => #<ResponseType:0x000056005b3e7518>
 ```
 
 # Overview 
@@ -151,19 +152,24 @@ Rules can be bundled together as elements in an array or values in a hash.
 - `SafeType::coerce!` coerces the object in place. The unspecified fields will not be modified.
 Note `SafeType::coerce!` cannot be used on a simple object, otherwise it will raise `SafeType::InvalidRuleError`. 
 
-To apply the rule on a simple object, we can call `[]` method as well.
+To apply the rule on a simple object, we can call the `coerce` method as well.
 ```ruby
-SafeType::Integer.default["1"]    # => 1
-SafeType::Integer["1"]            # => 1
+SafeType::Integer.default.coerce("1")    # => 1
+SafeType::Integer.coerce("1")            # => 1
 ```
-For the *SafeType* primitive types, apply the rule on the class itself will use the default rule.
+Note those two examples are equivalent:
+```ruby
+SafeType::coerce(ENV["PORT"], SafeType::Integer.default(3000))
+SafeType::Integer.default(3000).coerce(ENV["PORT"])
+``` 
+For the *SafeType* primitive types, applying the rule on the class itself will use the default rule.
 
 ## Customized Types
 We can inherit from a `SafeType::Rule` to create a customized type.
 We can override following methods if needed:
 - Override `initialize` to change the default values, types, or add more attributes.
 - Override `before` to update the input before convert. This method should take the input and return it after processing.
-- Override `validate` to check the value after convert. This method should take the input and return `true` or `false`.
+- Override `is_valid?` to check the value after convert. This method should take the input and return `true` or `false`.
 - Override `after` to update the input after validate. This method should take the input and return it after processing.
 - Override `handle_exceptions` to change the behavior of exceptions handling (e.g: send to the logger, or no exception) 
 - Override `default` or `strict` to modify the default and strict rule.
