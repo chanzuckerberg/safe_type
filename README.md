@@ -6,11 +6,11 @@ safe_type
 [![Maintainability](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/maintainability)](https://codeclimate.com/github/chanzuckerberg/safe_type/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/test_coverage)](https://codeclimate.com/github/chanzuckerberg/safe_type/test_coverage)
 
-While working with environment variables, routing parameters, API responses, or other Hash-like objects require parsing, we often need type coercion to assure expected behaviors.
+While working with environment variables, routing parameters, network responses, or other Hash-like objects that require parsing, we often need type coercion to assure expected behaviors.
 
 ***safe_type*** provides an intuitive type coercion interface and type enhancement.
 
-# Install
+# Installation
 
 We can install `safe_type` using `gem install`: 
 
