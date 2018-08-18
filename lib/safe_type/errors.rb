@@ -1,19 +1,17 @@
 module SafeType
-  class Error < StandardError; end
-
-  class CoercionError < Error
+  class CoercionError < StandardError
     def initialize(message="unable to transform into the requested type")
       super
     end
   end
 
-  class ValidationError < Error
+  class ValidationError < StandardError
     def initialize(message="failed to validate")
       super
     end
   end
 
-  class EmptyValueError < Error
+  class EmptyValueError < StandardError
     def initialize(message="the value should not be empty")
       super
     end
