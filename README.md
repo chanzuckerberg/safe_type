@@ -1,16 +1,14 @@
 ---
-SafeType
+safe_type
 ---
 [![Gem Version](https://badge.fury.io/rb/safe_type.svg)](https://badge.fury.io/rb/safe_type)
 [![Build Status](https://travis-ci.org/chanzuckerberg/safe_type.svg?branch=master)](https://travis-ci.org/chanzuckerberg/safe_type)
 [![Maintainability](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/maintainability)](https://codeclimate.com/github/chanzuckerberg/safe_type/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/7fbc9a4038b86ef639e1/test_coverage)](https://codeclimate.com/github/chanzuckerberg/safe_type/test_coverage)
 
-While working with environment variables, routing parameters, API responses,
-  or other Hash-like objects require parsing,
-  we often need type coercion to assure expected behaviors.
+While working with environment variables, routing parameters, API responses, or other Hash-like objects require parsing, we often need type coercion to assure expected behaviors.
 
-***SafeType*** provides an intuitive type coercion interface and type enhancement.
+***safe_type*** provides an intuitive type coercion interface and type enhancement.
 
 # Install
 
@@ -69,7 +67,7 @@ SafeType::coerce!(params, rules)
 params["course_id"]       # => 101
 params["start_date"]      # => <Date: 2018-10-01 ((2458393j,0s,0n),+0s,2299161j)>
 ```
-## JSON Response
+## Ruby Hashes
 ```ruby
 json = {
   "names" => ["Alice", "Bob", "Chris"],
@@ -99,7 +97,7 @@ SafeType::coerce!(json, {
   ]
 })
 ```
-## Http Response
+## Network Responses 
 ```ruby
 class ResponseType; end
 
@@ -129,7 +127,7 @@ The parameters are
 - `required` indicates whether empty values are allowed
 
 ## `strict` vs `default`
-The primitive types in *SafeType* provide `default` and `strict` mode, which are
+The primitive types in `SafeType` provide `default` and `strict` mode, which are
 - `SafeType::Boolean`
 - `SafeType::Date`
 - `SafeType::DateTime`
@@ -139,13 +137,13 @@ The primitive types in *SafeType* provide `default` and `strict` mode, which are
 - `SafeType::Symbol`
 - `SafeType::Time`
 
-Under the hood, they are all just SafeType rules.
+Under the hood, they are all just `Rule` classes with parameters:
 - `default`: a rule with default value specified
 - `strict`: a rule with `required: true`, so no empty values are allowed, or it throws `EmptyValueError`
 
-## Apply the rules
-As we've seen in the use cases, we can call `coerce` to apply a set of `SafeType::Rule`s.
-Rules can be bundled together as elements in an array or values in a hash.
+## Apply the Rules
+As we've seen in the use cases, we can call `coerce` to apply a set of `SafeType::Rule` classes.
+`Rule` classes can be bundled together as elements in an array or values in a hash.
 
 ### `coerce` vs `coerce!`
 - `SafeType::coerce` returns a new object, corresponding to the rules. The unspecified fields will not be included in the new object.
@@ -162,7 +160,7 @@ Note those two examples are equivalent:
 SafeType::coerce(ENV["PORT"], SafeType::Integer.default(3000))
 SafeType::Integer.default(3000).coerce(ENV["PORT"])
 ``` 
-For the *SafeType* primitive types, applying the rule on the class itself will use the default rule.
+For the `SafeType` primitive types, applying the rule on the class itself will use the default rule.
 
 ## Customized Types
 We can inherit from a `SafeType::Rule` to create a customized type.
@@ -174,15 +172,13 @@ We can override following methods if needed:
 - Override `handle_exceptions` to change the behavior of exceptions handling (e.g: send to the logger, or no exception) 
 - Override `default` or `strict` to modify the default and strict rule.
 
-# Prior Art
-This gem was inspired by [rails_param](https://github.com/nicolasblanco/rails_param)
-and [dry-types](https://github.com/dry-rb/dry-types). `dry-types` has a complex interface. 
-Also it does not support in place coercion, and it will be complicated to `ENV` since the design of its
-`Hash Schemas`. `rails_param` relies on Rails and it is only for the `params`. 
-Therefore, `safe_type` was created. It integrated some ideas from both gems, 
-and it was designed specifically for type checking to provide an clean and easy-to-use interface.
-It should be useful when working with any string or hash where the values are coming from an external source, 
-such as `ENV` variables, rails `params`, or API calls.
+## Prior Art
+`safe_type` pulls heavy inspiration from [dry-types](https://github.com/dry-rb/dry-types) and [rails_param](https://github.com/nicolasblanco/rails_param).
+The interface in `safe_type` looks similar to the interface in `dry-types`, however, `safe_type` supports some additional features such as in-place coercion
+using the Ruby bang method interface and the ability to define schemas using Ruby hashes and arrays. `safe_type` also borrows some concepts from `rails_param`, 
+but with some fundamental differences such as `safe_type` not relying  on Rails and `safe_type` not having a focus on only typing Rails controller parameters.
+The goal of `safe_type` is to provide a good tradeoff between complexity and flexibility by enabling type checking through a clean and easy-to-use interface.
+`safe_type` should be useful when working with any string or hash where the values could be ambiguously typed, such as `ENV` variables, rails `params`, or network responses..
 
-## License
-`safe_type` is released under an MIT license.
+# License
+The `safe_type` project licensed and available open source under the terms of the [MIT license](http://opensource.org/licenses/MIT). 
