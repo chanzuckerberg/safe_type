@@ -181,4 +181,4 @@ The goal of `safe_type` is to provide a good tradeoff between complexity and fle
 `safe_type` should be useful when working with any string or hash where the values could be ambiguously typed, such as `ENV` variables, rails `params`, or network responses..
 
 # License
-The `safe_type` project licensed and available open source under the terms of the [MIT license](http://opensource.org/licenses/MIT). 
+The `safe_type` project is licensed and available open source under the terms of the [MIT license](http://opensource.org/licenses/MIT). 
