@@ -1,25 +1,52 @@
 module SafeType
-  class CoercionError < StandardError
-    def initialize(message="unable to transform into the requested type")
-      super
+
+  class CoercionError < StandardError 
+    attr_reader :key
+    attr_reader :value
+    attr_reader :desired_type
+
+    def initialize(value, desired_type, key=nil)
+      super("Could not coerce " + (key.nil? ? '' : "key (#{key}) with ")  +
+            "value (#{value.inspect}) of type (#{value.class}) to desired type (#{desired_type})")
+
+      @key = key
+      @value = value
+      @desired_type = desired_type
     end
   end
 
   class ValidationError < StandardError
-    def initialize(message="failed to validate")
-      super
+    attr_reader :key
+    attr_reader :value
+    attr_reader :desired_type
+
+    def initialize(value, desired_type, key=nil)
+      super("Validation for " + (key.nil? ? '' : "key (#{key}) with ")  +
+            "value (#{value.inspect}) of " +
+            "type (#{value.class}) to desired type (#{desired_type}) has failed")
+
+      @key = key
+      @value = value
+      @desired_type = desired_type
     end
   end
 
   class EmptyValueError < StandardError
-    def initialize(message="the value should not be empty")
-      super
+    attr_reader :key
+    attr_reader :value
+
+    def initialize(desired_type, key=nil)
+      super("Expected a " + (key.nil? ? '' : "key (#{key}) with ")  +
+            "value of desired type (#{desired_type}), but received a nil value")
+
+      @key = key
+      @desired_type = desired_type
     end
   end
 
   class InvalidRuleError < ArgumentError
-    def initialize(message="invalid coercion rule")
-      super
+    def initialize()
+      super("Coercion rule does not exist or is not valid")
     end
   end
 end
