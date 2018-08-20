@@ -2,6 +2,7 @@
 Gemfile.lock
 *.gem
 coverage
+tags
 
 # Swap
 [._]*.s[a-v][a-z]
