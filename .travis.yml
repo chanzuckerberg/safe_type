@@ -6,7 +6,7 @@ rvm:
   - 2.4.3
   - 2.5.0
 
-bundler_args: --with test
+bundler_args: --binstubs
 
 before_install:
   - gem install bundler --no-doc
