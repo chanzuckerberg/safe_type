@@ -3,20 +3,12 @@
 ## Issues
 If there are any issues, feel free to create an issue on the GitHub repository issue page.
 
-## Setting Up
-To clone the repository and install dependencies:
+## Development 
+After checking out the repo, run `bin/setup` to install dependencies. Then, run `bundle exec rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-```bash
-git clone https://github.com/chanzuckerberg/safe_type.git
-cd ./safe_type
-bundle
-```
+To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to rubygems.org.
 
-In order to run all tests from within the directory:
-
-```ruby
-rake spec
-```
+If there are issues with running the `bin` files, try to `chmod +x bin/*` the files first.
 
 ## Contribution Guidelines
 1.  Make commits that are logically well isolated and have descriptive commit messages.
