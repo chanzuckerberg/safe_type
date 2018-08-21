@@ -12,12 +12,12 @@ require 'safe_type/primitive/time'
 
 module SafeType
   class << self
-    def coerce(input, rule)
-      return rule.coerce(input) if rule.is_a?(SafeType::Rule)
+    def coerce(input, rule, coerce_key=nil)
+      return rule.coerce(input, coerce_key) if rule.is_a?(SafeType::Rule)
       if rule.class == ::Hash
         result = {}
         rule.each do |key, val|
-          result[key] = coerce(input[key], val)
+          result[key] = coerce(input[key], val, key)
         end
         return result
       end
@@ -26,7 +26,7 @@ module SafeType
         result = ::Array.new(input.length)
         i = 0
         while i < input.length
-          result[i] = coerce(input[i], rule[i % rule.length])
+          result[i] = coerce(input[i], rule[i % rule.length], i)
           i += 1
         end
         return result
@@ -40,7 +40,7 @@ module SafeType
           if val.class == ::Hash
             coerce!(input[key], val)
           else
-            input[key] = coerce(input[key], val)
+            input[key] = coerce(input[key], val, key)
           end
         end
         return nil
@@ -48,7 +48,7 @@ module SafeType
       if rule.class == ::Array
         i = 0
         while i < input.length
-          input[i] = coerce(input[i], rule[i % rule.length])
+          input[i] = coerce(input[i], rule[i % rule.length], i)
           i += 1
         end
         return nil
