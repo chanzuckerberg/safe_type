@@ -33,7 +33,7 @@ module SafeType
 
   class EmptyValueError < StandardError
     attr_reader :key
-    attr_reader :value
+    attr_reader :desired_type
 
     def initialize(desired_type, key=nil)
       super("Expected a " + (key.nil? ? '' : "key (#{key}) with ")  +
