@@ -21,10 +21,13 @@ module SafeType
     end
 
     def self.to_int(input)
+      # We can first convert the input into a float (which is a superset of Integer) in order to
+      # support casting Integer to strings or values that contain decimal places.
+      float_input = Float(input)
       if input.is_a?(::String)
-        Integer(input, base=10)
+        Integer(float_input, base=10)
       else
-        Integer(input)
+        Integer(float_input)
       end
     end
 
