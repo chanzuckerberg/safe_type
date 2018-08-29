@@ -21,11 +21,7 @@ module SafeType
     end
 
     def self.to_int(input)
-      if input.is_a?(::String)
-        Integer(input, base=10)
-      else
-        Integer(input)
-      end
+      Integer(Float(input))
     end
 
     def self.to_float(input)
