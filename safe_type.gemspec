@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'safe_type'
-  s.version     = '1.0.0'
+  s.version     = '1.1.1'
   s.date        = '2018-07-18'
   s.summary     = 'Type Coercion & Type Enhancement'
   s.description = %q{ 
