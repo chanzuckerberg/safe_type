@@ -70,32 +70,69 @@ params["start_date"]      # => <Date: 2018-10-01 ((2458393j,0s,0n),+0s,2299161j)
 ## Ruby Hashes
 ```ruby
 json = {
-  "names" => ["Alice", "Bob", "Chris"],
+  "numbers" => [
+    ["10", "100", "1000"],
+    ["20", "200", "2000"],
+    ["30", "300", "3000"]
+  ],
   "info" => [
     {
       "type" => "dog",
-      "age" => "5",
+      "pets_age" => "45",
+      "num_of_siblings" => "3"
     },
     {
       "type" => "cat",
-      "age" => "4",
+      "pets_age" => "44",
+      "num_of_siblings" => "4"
     },
     {
       "type" => "fish",
-      "age" => "6",
+      "pets_age" => "46",
+      "num_of_siblings" => "5"
     }
   ]
 }
 
 SafeType::coerce!(json, {
-  "names" => [SafeType::String.strict],
+  "numbers" => [
+    [SafeType::Integer.strict, SafeType::String.strict],
+    [SafeType::Integer.strict],
+    [SafeType::String.strict]
+  ],
   "info" => [
     {
       "type" => SafeType::String.strict,
-      "age" => SafeType::Integer.strict
+      "pets_age" => SafeType::Integer.strict,
     }
   ]
 })
+
+# ANSWER
+answer = {
+  "numbers" => [
+    [10, "100", 1000],
+    [20, 200, 2000],
+    ["30", "300", "3000"]
+  ],
+  "info" => [
+    {
+      "type" => "dog",
+      "pets_age" => 45,
+      "num_of_siblings" => "3"
+    },
+    {
+      "type" => "cat",
+      "pets_age" => 44,
+      "num_of_siblings" => "4"
+    },
+    {
+      "type" => "fish",
+      "pets_age" => 46,
+      "num_of_siblings" => "5"
+    }
+  ]
+}
 ```
 ## Network Responses 
 ```ruby

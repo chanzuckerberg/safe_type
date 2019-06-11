@@ -164,7 +164,8 @@ describe :SafeType do
       "info" => [
         {
           "type" => SafeType::String.strict,
-          "age" => SafeType::Integer.strict
+          "age" => SafeType::Integer.strict,
+          "comment" => SafeType::String.default(nil),
         }
       ]
     }
@@ -174,14 +175,17 @@ describe :SafeType do
         {
           "type" => "dog",
           "age" => 5,
+          "comment" => nil,
         },
         {
           "type" => "cat",
           "age" => 4,
+          "comment" => nil,
         },
         {
           "type" => "fish",
           "age" => 6,
+          "comment" => nil,
         }
       ]
     }
@@ -191,7 +195,96 @@ describe :SafeType do
     expect(json).to eql(ans)
   end
 
-  it "raises exceptions whencoercion rules are invalid" do
+  it "coerce! doesn't modify unspecified fields" do
+    json = {
+      "multiples" => [
+        ["10", "100", "1000"],
+        ["20", "200", "2000"],
+        ["30", "300", "3000"]
+      ],
+      "people" => [
+        {
+          "name" => "Jose",
+          "favoriteNumbers" => ["2","4","6"],
+          "other_info" => {
+            "birth_month" => "August",
+            "birth_day" => "4",
+            "age" => {
+              "number" => 20,
+              "word" => "twenty",
+            },
+          }
+        },
+        {
+          "name" => "Juan",
+          "favoriteNumbers" => ["3","6","9"],
+          "other_info" => {
+            "birth_month" => "August",
+            "birth_day" => "4",
+            "age" => {
+              "number" => 30,
+              "word" => "thirty",
+            },
+          }
+        },
+      ]
+    }
+    rules = {
+      "multiples" => [
+        [SafeType::Integer.strict, SafeType::String.strict],
+        [SafeType::Integer.strict],
+        [SafeType::String.strict]
+      ],
+      "people" => [
+        {
+          "name" => SafeType::String.strict,
+          "favoriteNumbers" => [SafeType::Integer.strict],
+          "other_info" => {
+            "birth_month" => SafeType::String.strict,
+            "birth_day" => SafeType::Integer.strict,
+          }
+        },
+      ]
+    }
+    ans = {
+      "multiples" => [
+        [10, "100", 1000],
+        [20, 200, 2000],
+        ["30", "300", "3000"]
+      ],
+      "people" => [
+        {
+          "name" => "Jose",
+          "favoriteNumbers" => [2, 4, 6],
+          "other_info" => {
+            "birth_month" => "August",
+            "birth_day" => 4,
+            "age" => {
+              "number" => 20,
+              "word" => "twenty",
+            },
+          }
+        },
+        {
+          "name" => "Juan",
+          "favoriteNumbers" => [3, 6, 9],
+          "other_info" => {
+            "birth_month" => "August",
+            "birth_day" => 4,
+            "age" => {
+              "number" => 30,
+              "word" => "thirty",
+            },
+          }
+        },
+      ]
+    }
+
+    SafeType::coerce!(json, rules)
+    expect(json).to eql(ans)
+  end
+
+  it "raises exceptions when coercion rules are invalid" do
     expect{
       SafeType::coerce!("true", SafeType::Rule.new(
         type: TrueClass
