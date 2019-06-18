@@ -9,7 +9,7 @@ rvm:
 bundler_args: --binstubs
 
 before_install:
-  - gem install bundler --no-doc
+  - gem install bundler -v 2.0.2 --no-doc
 
 script:
   - bundle exec rake
