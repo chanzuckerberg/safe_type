@@ -37,9 +37,11 @@ module SafeType
     def coerce!(input, rule)
       if rule.class == ::Hash
         rule.each do |key, val|
-          if val.class == ::Hash
+          # if element is a collection, coerce individually
+          if val.class == ::Hash || val.class == ::Array
             coerce!(input[key], val)
           else
+            # if not a collection, reassign simple object to coerced value
             input[key] = coerce(input[key], val, key)
           end
         end
@@ -48,7 +50,14 @@ module SafeType
       if rule.class == ::Array
         i = 0
         while i < input.length
-          input[i] = coerce(input[i], rule[i % rule.length], i)
+          val = rule[i % rule.length]
+          # if this is an array of collections (Array|Hash), coerce those collections individually
+          if val.class == ::Hash || val.class == ::Array
+            coerce!(input[i], val)
+          else
+            # if not a collection, reassign simple object in array to coerced value
+            input[i] = coerce(input[i], val)
+          end
           i += 1
         end
         return nil
